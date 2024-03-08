@@ -61,7 +61,6 @@ El archivo JSON se compone de los siguientes elementos:
 - `unidad`: Número de unidad del bus (tipo `int`).
 - `min`: Capacidad mínima de pasajeros (tipo `int`).
 - `max`: Capacidad máxima de pasajeros (tipo `int`).
-- `salida`: ID de la parada de inicio del recorrido (tipo `string`, solo para despacho inicial).
 - `disponible`: Indica si el bus está disponible (tipo `bool`).
 - `ruta`: ID o número de la ruta que sigue el bus (tipo `int` o `string`).
 
