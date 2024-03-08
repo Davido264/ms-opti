@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+import pandas as pd
+import typing
+import os
+
+DATASET_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)),"data","full_dataset.csv")
+TEST_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)),"data","test_split.csv")
+TRAIN_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)),"data","train_split.csv")
+
+df = pd.read_csv("./data/dataset.csv")
+
+train_df = typing.cast(pd.DataFrame,df[df["timespan"] <= "2024-03-23"])
+test_df = typing.cast(pd.DataFrame,df[df["timespan"] > "2024-03-23"])
+
+train_df.to_csv("./data/train_buses.csv")
+test_df.to_csv("./data/test_buses.csv")

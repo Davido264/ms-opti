@@ -1,0 +1,174 @@
+{
+  "paradas": [
+    {
+      "id": 0,
+      "nombre": "Alborada",
+      "tiempo": "00:04:00",
+      "retrasoPorEvento": "00:10:00"
+    },
+    {
+      "id": 1,
+      "nombre": "Calle Ruilova",
+      "tiempo": "00:09:00",
+      "retrasoPorEvento": "00:05:00"
+    },
+    {
+      "id": 2,
+      "nombre": "Calle Carihuairazo",
+      "tiempo": "00:06:00"
+    },
+    {
+      "id": 3,
+      "nombre": "Ex KIA Motors",
+      "tiempo": "00:07:00"
+    },
+    {
+      "id": 4,
+      "nombre": "Vereda Tropical",
+      "tiempo": "00:05:00"
+    },
+    {
+      "id": 5,
+      "nombre": "Camino hacia el Futuro",
+      "tiempo": "00:16:00"
+    },
+    {
+      "id": 6,
+      "nombre": "Las Piedras",
+      "tiempo": "00:03:00"
+    },
+    {
+      "id": 7,
+      "nombre": "Cosmopolita",
+      "tiempo": "00:06:00"
+    },
+    {
+      "id": 8,
+      "nombre": "Licorería Zona Fría",
+      "tiempo": "00:06:00"
+    },
+    {
+      "id": 9,
+      "nombre": "Calle Amazonas",
+      "tiempo": "00:07:00"
+    },
+    {
+      "id": 10,
+      "nombre": "Av Quito y Latacunga",
+      "tiempo": "00:05:00"
+    },
+    {
+      "id": 11,
+      "nombre": "Calle Machala",
+      "tiempo": "00:04:00"
+    },
+    {
+      "id": 12,
+      "nombre": "Coop JEP",
+      "tiempo": "00:05:00"
+    },
+    {
+      "id": 13,
+      "nombre": "Parada Terminal",
+      "tiempo": "00:15:00"
+    }
+  ],
+  "rutas": [
+    {
+      "id": 30,
+      "paradas": [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ]
+    }
+  ],
+  "horario": {
+    "inicio": {
+      "max": "07:05:00",
+      "min": "05:30:00"
+    },
+    "fin": {
+      "max": "19:00:00",
+      "min": "18:30:00"
+    },
+    "descanso": {
+      "min": "00:05:00",
+      "max": "00:20:00"
+    },
+    "intervalo": "00:05:00",
+    "almuerzo": {
+      "tiempo": "00:30:00",
+      "inicio": "12:00:00",
+      "fin": "14:00:00"
+    }
+  },
+  "penalizaciones": {
+    "precioMinuto": 1.0,
+    "costoCapacidad": 1.0,
+    "costoPocosPasajeros": 0.5,
+    "costoVacio": 50
+  },
+  "buses": [
+    {
+      "unidad": 1,
+      "min": 30,
+      "max": 47,
+      "salida": 0,
+      "disponible": true,
+      "ruta": 30
+    },
+    {
+      "unidad": 20,
+      "min": 30,
+      "max": 50,
+      "salida": 0,
+      "disponible": true,
+      "ruta": 30
+    },
+    {
+      "unidad": 45,
+      "min": 30,
+      "max": 35,
+      "salida": 0,
+      "disponible": true,
+      "ruta": 30
+    },
+    {
+      "unidad": 90,
+      "min": 30,
+      "max": 40,
+      "salida": 0,
+      "disponible": true,
+      "ruta": 30
+    },
+    {
+      "unidad": 3,
+      "min": 30,
+      "max": 40,
+      "salida": 5,
+      "disponible": true,
+      "ruta": 30
+    },
+    {
+      "unidad": 8,
+      "min": 30,
+      "max": 52,
+      "salida": 5,
+      "disponible": true,
+      "ruta": 30
+    },
+    {
+      "unidad": 12,
+      "min": 30,
+      "max": 45,
+      "salida": 5,
+      "disponible": true,
+      "ruta": 30
+    },
+    {
+      "unidad": 19,
+      "min": 30,
+      "max": 43,
+      "salida": 5,
+      "disponible": true,
+      "ruta": 30
+    }
+  ]
+}

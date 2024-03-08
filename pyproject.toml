@@ -1,0 +1,13 @@
+[project]
+name = "ms-opti"
+version = "0.0.1"
+description = "An optimizer for bus dispachs"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "scipy==1.12.0",
+    "simanneal==0.5.0",
+    "dataclass-wizard==0.22.3",
+    "numpy==1.26.4",
+    "pandas==2.2.0"
+]
+
