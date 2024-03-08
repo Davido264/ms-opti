@@ -10,7 +10,7 @@ pyrightconfig.json
 html/
 
 # generated models
-./model/
+model/
 
 # generated outputs
 out/
