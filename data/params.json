@@ -110,7 +110,6 @@
       "unidad": 1,
       "min": 30,
       "max": 47,
-      "salida": 0,
       "disponible": true,
       "ruta": 30
     },
@@ -118,7 +117,6 @@
       "unidad": 20,
       "min": 30,
       "max": 50,
-      "salida": 0,
       "disponible": true,
       "ruta": 30
     },
@@ -126,7 +124,6 @@
       "unidad": 45,
       "min": 30,
       "max": 35,
-      "salida": 0,
       "disponible": true,
       "ruta": 30
     },
@@ -134,7 +131,6 @@
       "unidad": 90,
       "min": 30,
       "max": 40,
-      "salida": 0,
       "disponible": true,
       "ruta": 30
     },
@@ -142,7 +138,6 @@
       "unidad": 3,
       "min": 30,
       "max": 40,
-      "salida": 5,
       "disponible": true,
       "ruta": 30
     },
@@ -150,7 +145,6 @@
       "unidad": 8,
       "min": 30,
       "max": 52,
-      "salida": 5,
       "disponible": true,
       "ruta": 30
     },
@@ -158,7 +152,6 @@
       "unidad": 12,
       "min": 30,
       "max": 45,
-      "salida": 5,
       "disponible": true,
       "ruta": 30
     },
@@ -166,7 +159,6 @@
       "unidad": 19,
       "min": 30,
       "max": 43,
-      "salida": 5,
       "disponible": true,
       "ruta": 30
     }

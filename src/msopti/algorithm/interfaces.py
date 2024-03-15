@@ -9,7 +9,7 @@ import pandas as pd
 from typing import TypeAlias, Callable
 from msopti.params import Stop, Vehicle
 
-Scorefn: TypeAlias = Callable[[datetime.datetime,datetime.timedelta,int],float] # pylint: disable=C0301
+Scorefn: TypeAlias = Callable[[datetime.datetime,str|int,datetime.timedelta,int],float] # pylint: disable=C0301
 """Función de calificación.
 
 Args:
@@ -48,7 +48,6 @@ class SolverParams():
         interval: Tiempo mínimo que se espera de despacho en despacho.
         units: Lista de unidades que están asignados a una ruta en específico.
         stops: Lista de paradas asignadas a una ruta.
-        start_point: id de la parada (string o int) en donde incia el recorrido.
     """
 
     formula: Scorefn
@@ -61,7 +60,6 @@ class SolverParams():
     interval: datetime.timedelta
     units: list[Vehicle]
     stops: list[Stop]
-    start_point: str|int
 
 
 @dataclass
@@ -92,12 +90,15 @@ class Solution:
         unit: El vehículo seleccionado para realizar el recorrido.
         planification: Un lista de `StopTime` representando la planificación de
             la unidad.
+        start_point: El id de la parada (str|int) en donde se comenzará a
+            despachar.
         delay: El tiempo que se esperó antes de realizar el despacho. Es la
             solución del algoritmo.
     """
 
     unit: Vehicle
     planification: list[StopTime]
+    start_point: str|int
     delay: int
 
     def to_dataframe(self) -> pd.DataFrame:

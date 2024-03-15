@@ -38,7 +38,11 @@ class Stop:
     name: str = dw.json_field("nombre", all=True)  # type: ignore
     time: datetime.timedelta = dw.json_field("tiempo", all=True)  # type: ignore
     event_delay: datetime.timedelta = dw.json_field("retrasoPorEvento", all=True, default_factory=datetime.timedelta)  # type: ignore pylint: disable=C0301
-    last_visit: datetime.datetime | None = dw.json_field("ultimaVisita", dump=False, default=None)  # type: ignore pylint: disable=C0301
+    visits: list[datetime.datetime] = dw.json_field("visitas", dump=False, default_factory=list)  # type: ignore pylint: disable=C0301
+
+    def visit(self,dt: datetime.datetime):
+        self.visits.append(dt)
+        self.visits.sort()
 
 
 @dataclass
@@ -130,8 +134,6 @@ class Vehicle:
         unit_number: El número de la unidad.
         min: La capacidad mínima de pasajeros que puede llevar.
         max: La capacidad máxima de pasajeros que puede llevar.
-        start_point: El id de la parda (string o int) en donde comenzará
-            su recorrido.
         available: `True` si la unidad está disponible para realizar
             recorridos, `False` si no lo está.
         route: El id de la ruta que la unidad sigue (string o int).
@@ -140,7 +142,6 @@ class Vehicle:
     unit_number: int = dw.json_field("unidad", all=True)  # type: ignore
     min: int = dw.json_field("min", all=True)  # type: ignore
     max: int = dw.json_field("max", all=True)  # type: ignore
-    start_point: str | int = dw.json_field("salida", all=True)  # type: ignore
     available: bool = dw.json_field("disponible", all=True)  # type: ignore
     route: str | int = dw.json_field("ruta", all=True)  # type: ignore
 

@@ -54,14 +54,14 @@ async def run():
             time_max,
             interval,
             units,
-            stops,
-            start
+            stops
         )
+        print("== DISPATCH ==")
         solution = an2.solve()
         solutions.append(solution)
         unit = next(u for u in units if u.unit_number == solution.unit.unit_number)
         unit.available = False
-        units = [i for i in P.vehicles if available(i,start)]
+        units = [i for i in P.vehicles if available(i)]
         initial_time += datetime.timedelta(minutes=solution.delay) + P.schedule.interval
 
         # TODO: Mover esta implementación a solve_multi y considerar los cambios y reordenamiento de las rutas
@@ -92,8 +92,8 @@ async def main():
     print("== Unidades despachadas (en orden) ===")
 
     for i in solutions:
-        print(f"Stop: {dw.asdict(next(j for j in P.stops if j.id == i.start_point), exclude=('time', 'event_delay', 'last_visit'))}")
-        print(f"    {dw.asdict(i.unit, exclude=('available','start_point','route'))}")
+        print(f"Stop: {dw.asdict(next(j for j in P.stops if j.id == i.start_point), exclude=('time', 'event_delay', 'last_visit'))}") # type: ignore
+        print(f"    {dw.asdict(i.unit, exclude=('available','start_point','route'))}") # type: ignore
         print(f"         {[j.time.isoformat() for j in i.planification]}")
         print(f"         Esperado {i.delay} minutos antes de despachar")
         print("\n\n")
