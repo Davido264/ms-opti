@@ -93,13 +93,14 @@ class AnnealSolver(ISolver):
 
         official_start_time = start + datetime.timedelta(minutes=delay)
 
-        planification = []
-        stopi = [i.id for i in self._params.stops].index(self._params.start_point)
+        p1 = []
+        p2 = []
 
+        acum = official_start_time
         for i in self._params.stops[stopi:]:
-            stop_time = official_start_time + i.time + i.event_delay
-            official_start_time = stop_time
-            planification.append(
+            stop_time = acum + i.time + i.event_delay
+            acum = stop_time
+            p1.append(
                 StopTime(
                     i,
                     datetime.time(
@@ -109,7 +110,22 @@ class AnnealSolver(ISolver):
                 )
             )
 
-        return Solution(unit,planification,delay)
+        for i in self._params.stops[:stopi]:
+            stop_time = acum + i.time + i.event_delay
+            acum = stop_time
+            p2.append(
+                StopTime(
+                    i,
+                    datetime.time(
+                        hour=stop_time.seconds // 3600,
+                        minute=(stop_time.seconds % 3600) // 60,
+                    )
+                )
+            )
+
+        planification = p1 if len(p2) == 0 else (p2 + p1)
+
+        return Solution(unit,planification,stop_id,delay)
 
 
     def solve_multi(self):

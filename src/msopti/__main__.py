@@ -13,11 +13,11 @@ ROUTE = 30
 P = params.load_params_from_file(os.environ["PARAMS_PATH"])
 DF = pd.read_csv(os.environ["DATASET_TEST_PATH"])
 
-def available(i: params.Vehicle, start_point: int) -> bool:
-    return i.available and i.route == ROUTE and i.start_point == start_point
+def available(i: params.Vehicle) -> bool:
+    return i.available and i.route == ROUTE
 
-async def run(start: int, stop: int):
-    units = [i for i in P.vehicles if available(i,start)]
+async def run():
+    units = [i for i in P.vehicles if available(i)]
     route = next(i for i in P.routes if i.id == ROUTE)
     stops = [i for i in P.stops if i.id in route.stops]
 
@@ -33,12 +33,17 @@ async def run(start: int, stop: int):
     forecast.set_index(keys="timespan",inplace=True)
     initial_time = today + P.schedule.start.min
     final_time = today + P.schedule.start.max
-    forecast = forecast.between_time(initial_time.time(),final_time.time())
+
+    g = forecast.groupby(typing.cast(pd.DatetimeIndex,forecast.index).floor("d")) # type: ignore pylint: disable=C0301
+    cdate = pd.Timestamp(today)
+    forecast = typing.cast(pd.DataFrame,g.get_group(cdate))
+    # forecast = forecast.between_time(initial_time.time(),final_time.time())
+
     time_max = (final_time - initial_time) / len(units)
 
     solutions: list[interfaces.Solution] = []
     while len(units) != 0:
-        f = formula.gererate_formula(forecast,[start,stop],stops,P.scores,today)
+        f = formula.gererate_formula(forecast,stops,P.scores)
         an2 = annealing.AnnealSolver(
             f,
             time_score,
@@ -68,41 +73,32 @@ async def run(start: int, stop: int):
                 hour=sto.time.hour,
                 minute=sto.time.minute
             )
-            stops[i].last_visit = last_time
+            stops[i].visit(last_time) 
+
+        for stop in stops:
+            print(stop)
 
     return solutions
 
 
 async def main():
-    async with asyncio.TaskGroup() as tg:
-        task1 = tg.create_task(run(0,5))
-        task2 = tg.create_task(run(5,0))
-
-    solutions1 = task1.result()
-    solutions2 = task2.result()
-    df1 = pd.concat([i.to_dataframe() for i in solutions1])
-    df2 = pd.concat([i.to_dataframe() for i in solutions2])
-
-    master_df = pd.concat([df1,df2])
+    solutions = await run()
+    df = pd.concat([i.to_dataframe() for i in solutions])
 
     print("===  Planification  ==")
     print("== Configuraciones ===")
     print(f"    Se intentará despachar como mínimo cada {P.schedule.interval}")
-    # TODO: configuración para los puntos de salida dentro de params.json
-    print(f"    Los puntos de partida serán las paradas:  {P.stops[0].name} y {P.stops[5].name}")
     print("\n")
     print("== Unidades despachadas (en orden) ===")
 
-    for x in [0,5]:
-        print(f"Stop: {dw.asdict(P.stops[x], exclude=('time', 'event_delay', 'last_visit'))}")
-        sol = solutions1 if x == 0 else solutions2
-        for i in sol:
-            print(f"    {dw.asdict(i.unit, exclude=('available','start_point','route'))}")
-            print(f"         {[j.time.isoformat() for j in i.planification]}")
-            print(f"         Esperado {i.delay} minutos antes de despachar")
-            print("\n\n")
+    for i in solutions:
+        print(f"Stop: {dw.asdict(next(j for j in P.stops if j.id == i.start_point), exclude=('time', 'event_delay', 'last_visit'))}")
+        print(f"    {dw.asdict(i.unit, exclude=('available','start_point','route'))}")
+        print(f"         {[j.time.isoformat() for j in i.planification]}")
+        print(f"         Esperado {i.delay} minutos antes de despachar")
+        print("\n\n")
 
     print("View results on testing.csv")
-    master_df.to_csv("testing.csv")
+    df.to_csv("testing.csv")
 
 asyncio.run(main())
