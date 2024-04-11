@@ -19,16 +19,17 @@ class _AnnealImpl(simanneal.Annealer):
         if self._index == len(self._params.units) - 1:
             self._index = 0
 
-            if self._istop == len(self._params.stops) - 1:
+            should_update_time = True
+            if self._params.optimize_stops and self._istop == len(self._params.stops) - 1:
                 self._istop = 0
-
-                if self._time >= self._params.time_max:
-                    self._time = datetime.timedelta(minutes=0)
-                else:
-                    self._time += self._params.interval
-
-            else:
+            elif self._params.optimize_stops:
                 self._istop += 1
+                should_update_time = False
+
+            if should_update_time and self._time >= self._params.time_max:
+                self._time = datetime.timedelta(minutes=0)
+            elif should_update_time:
+                self._time += self._params.interval
 
         else:
             self._index += 1
@@ -46,7 +47,15 @@ class _AnnealImpl(simanneal.Annealer):
 
 
     def __init__(self,state: tuple[str|int,int,int],params: SolverParams) -> None:
-        steps = (params.time_max // params.interval) * len(params.units) * len(params.stops)
+        # El número máximo de iteraciones se obtiene multiplicando 'm * n * o'.
+        # Estas fórmulas son correspespondientes a las
+        # combinaciones de los distintos parámetros del algoritmo. En caso de
+        # que 'optimize_stops = False', 'o = 1'
+        steps = \
+            (params.time_max // params.interval) * \
+            len(params.units) * \
+            (len(params.stops) if params.optimize_stops else 1)
+
         self._index = 0
         self._istop = 0
         self._time = datetime.timedelta(minutes=0)
@@ -72,22 +81,34 @@ class AnnealSolver(ISolver):
     La forma en la que se opera es la siguiente:
 
     1. Se tiene una tupla, en la cual se representa el número de unidad, la
-    cantidad de minutos antes de salir, y el número de parada en que saldrá;
-    y una lista de las unidades para consultar información más detallada de una
-    unidad.
+    cantidad de minutos antes de salir y una lista de las unidades para 
+    consultar información más detallada de una unidad.
+
+    2. Se obtiene un nuevo tiempo actual, sumando el último tiempo obtenido
+    y la cantidad de minutos que espera cada unidad. Si es la primera iteración,
+    la cantidad de minutos será siempre 0.
+
+    3. Se califica ese tiempo y parada en todas las unidades disponibles.
+
+    4. Cuando se termine con las unidades, se sumará el tiempo otro intervalo.
+    Así hasta llegar al tiempo máximo.
+
+    5. El número de iteraciones será calculado en base al número de veces que
+    se puede subir el intervalo (m) y la cantidad de unidades que se tiene (n),
+    siguiendo la fórmula $m \\times n \\times o$
+
+    Si se define `optimize_stops = True`, se realizan las siguientes
+    modificaciones:
+
+    1. Adicional al número de la unidad, y la cantidad de minutos antes de salir
+    de una parada, se lleva seguimiento al número de parada desde donde
+    iniciaría el recorrido.
 
     2. Se obtiene la parada actual, recorriendo el índice de la parada en 1.
     Cuando se recorran todas, este índice vuelve a ser 0.
 
-    3. Se obtiene un nuevo tiempo actual, sumando el último tiempo obtenido
-    y la cantidad de minutos que espera cada unidad. Si es la primera iteración,
-    la cantidad de minutos será siempre 0.
-
-    4. Se califica ese tiempo y parada en todas las unidades disponibles.
-
-    5. Cuando se termine con las unidades, se recorrerá una parada, y cuando se
-    termine con las paradas, se sumará el tiempo otro intervalo.
-    Así hasta llegar al tiempo máximo.
+    3. Al finalizar la iteración por las unidades, antes de sumar otro intervalo
+    de tiempo, se recorrerá una parada hasta terminar con las mismas.
 
     5. El número de iteraciones será calculado en base al número de veces que
     se puede subir el intervalo (m), la cantidad de unidades que se tiene (n), y
@@ -170,6 +191,7 @@ class AnnealSolver(ISolver):
         interval: datetime.timedelta,
         units: list[Vehicle],
         stops: list[Stop],
+        optimize_stops: bool = False
         ) -> None:
         p = SolverParams(
             formula,
@@ -181,7 +203,8 @@ class AnnealSolver(ISolver):
             time_max,
             interval,
             units,
-            stops
+            stops,
+            optimize_stops
         )
 
         # En https://github.com/perrygeo/simanneal?tab=readme-ov-file#implementation-details

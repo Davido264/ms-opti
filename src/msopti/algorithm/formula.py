@@ -1,8 +1,12 @@
 """Módulo de utilidad que genera la función calificadora.
 """
+# TODO: Documentar todo esto en un documento aparte y comentar resumen de esto
+# con el link a títulos en dicho documento
 
 from functools import reduce
 import typing
+import math
+import datetime
 import pandas as pd
 import datetime
 
@@ -31,7 +35,7 @@ def _query_df(
         if is_cached:
             return (CACHE["pt"],CACHE["qt"])
 
-    # setup para p(t) y g(t)
+    # setup para p(t) y q(t)
     # si es el primer despacho, se lo tiene que manejar distinto
     # considerando que otros buses visitarán las paradas y no se
     # esperaría tanto tiempo. Por ejemplo, se revisa desde las
@@ -51,17 +55,61 @@ def _query_df(
         #   ...  - ...
 
         sf = forecast[forecast["stop_id"] == stop.id]
-
-        # Como se tiene una lista con todas las visitas ordenadas, se obtiene
-        # la más cercana a la hora actual. De tal modo que no buscamos
-        # los horarios entre las 8:00 y 8:05 siendo que la parada fue visitada
-        # a las 6:30. Debido a las planificaciones, no se garantiza que
-        # la última visita sea la más reciente, esta se puede ir al futuro.
-        if st + stop.time + stop.event_delay in stop.visits:
-            already_done += sf.between_time(st.time(),(st + t).time())["passengers"].sum()
-
         st += (stop.time + stop.event_delay)
         end = st + t
+
+        # Para cada tiempo establecido (inicio y fin) se va a obtener los
+        # valores más cercanos a los registrados (asumiendo que todos los 
+        # registros contienen tiempos cuyos minutos son múltiplos de 5), y se
+        # hace una consulta a los registros entre los tiempos obtenidos. Para
+        # luego iterar por este registro resultante, y obtener el valor más
+        # cercano antes y después del tiempo dado. Una vez teniendo eso, se
+        # obtiene la diferencia entre los 2 valores obtenidos, tanto en la
+        # cantidad de pasajeros como en los minutos, y se los divide entre si,
+        # lo cual resulta en un factor aproximado de personas por minuto entre
+        # esos 2 intervalos de tiempo. Toda esta opración se omite si el tiempo
+        # dado tiene directamente un registro en la base de datos.
+        acumulated_passengers = 0
+        p = []
+
+        for i in [st,end]:
+            floor = datetime.time(
+                    hour=i.hour,
+                    minute=math.floor(i.minute / 10) * 10,
+                    second=i.second
+            )
+
+            ceil = datetime.time(
+                    hour=i.hour,
+                    minute=math.ceil(i.minute / 10) * 10,
+                    second=i.second
+            )
+
+            s = sf.between_time(floor,ceil)
+
+            # se tiene un registro del valor anterior, en caso de encontrar la
+            # primera diferencia de tiempo positiva, se opera el valor anterior
+            # y el actual. Esto es válido debido a que se asume que los
+            # registros están en orden
+            prev_val = 0
+            prev_time = None
+            val_diff = 0
+            time_diff = 0
+
+            for ts,reg in s.iterrows():
+                diff = ts - floor # type: ignore
+                val = reg["passengers"]
+                curr_time = ts
+                val_diff = val - prev_val
+                time_diff = curr_time - prev_time # type: ignore
+                if diff > 0:
+                    break
+                prev_val = val
+                prev_time = curr_time
+
+            p.append(time_diff / val_diff if val_diff != 0 else 0)
+        df[] += max(p)
+
 
         if len(stop.visits) == 0:
             s = sf.between_time(start.time(),end.time())
@@ -70,6 +118,7 @@ def _query_df(
 
         df = pd.concat([df,s])
         df = typing.cast(pd.DataFrame,df)
+
 
     CACHE = {}
     CACHE["stops"] = scoped_stops

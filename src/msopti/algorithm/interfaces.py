@@ -48,6 +48,8 @@ class SolverParams():
         interval: Tiempo mínimo que se espera de despacho en despacho.
         units: Lista de unidades que están asignados a una ruta en específico.
         stops: Lista de paradas asignadas a una ruta.
+        optimize_stops: Si es `True`, se optimizarán las paradas, caso contrario
+            no se optimizarán y se usará la primera parada como punto de partida
     """
 
     formula: Scorefn
@@ -60,6 +62,7 @@ class SolverParams():
     interval: datetime.timedelta
     units: list[Vehicle]
     stops: list[Stop]
+    optimize_stops: bool = False
 
 
 @dataclass
