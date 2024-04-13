@@ -3,12 +3,10 @@
 # TODO: Documentar todo esto en un documento aparte y comentar resumen de esto
 # con el link a títulos en dicho documento
 
-from functools import reduce
 import typing
 import math
 import datetime
 import pandas as pd
-import datetime
 
 from msopti.algorithm.interfaces import Scorefn
 from msopti.params import Scores, Stop
@@ -46,7 +44,6 @@ def _query_df(
     # visitada en y, y se revisa desde y hasta x
     st = start
     df = pd.DataFrame()
-    already_done = 0
     for stop in scoped_stops:
         # Times (t = 5, t0 = 6:05):
         #   6:14 - 6:19 (parada 1: tp = 9 minutos)
@@ -69,52 +66,35 @@ def _query_df(
         # lo cual resulta en un factor aproximado de personas por minuto entre
         # esos 2 intervalos de tiempo. Toda esta opración se omite si el tiempo
         # dado tiene directamente un registro en la base de datos.
-        acumulated_passengers = 0
-        p = []
 
-        for i in [st,end]:
-            floor = datetime.time(
-                    hour=i.hour,
-                    minute=math.floor(i.minute / 10) * 10,
-                    second=i.second
-            )
+        floor = datetime.time(
+            hour=st.hour,
+            minute=math.floor(st.minute / 10) * 10,
+            second=st.second
+        )
 
-            ceil = datetime.time(
-                    hour=i.hour,
-                    minute=math.ceil(i.minute / 10) * 10,
-                    second=i.second
-            )
+        min_ceil = math.ceil(st.minute / 10) * 10
 
-            s = sf.between_time(floor,ceil)
+        ceil = datetime.time(
+            hour=st.hour if min_ceil != 60 else st.hour + 1,
+            minute= min_ceil if min_ceil != 60 else 0,
+            second=st.second
+        )
 
-            # se tiene un registro del valor anterior, en caso de encontrar la
-            # primera diferencia de tiempo positiva, se opera el valor anterior
-            # y el actual. Esto es válido debido a que se asume que los
-            # registros están en orden
-            prev_val = 0
-            prev_time = None
-            val_diff = 0
-            time_diff = 0
+        s = sf.between_time(floor,ceil)
+        typing.cast(pd.DataFrame,s)
 
-            for ts,reg in s.iterrows():
-                diff = ts - floor # type: ignore
-                val = reg["passengers"]
-                curr_time = ts
-                val_diff = val - prev_val
-                time_diff = curr_time - prev_time # type: ignore
-                if diff > 0:
-                    break
-                prev_val = val
-                prev_time = curr_time
+        # se busca el tiempo registrado más cercano y se lo utiliza
+        def diff(a,b):
+            time_a = datetime.timedelta(hours=a.hour,minutes=a.minute)
+            time_b = datetime.timedelta(hours=b.hour,minutes=b.minute)
+            return abs(time_a - time_b)
 
-            p.append(time_diff / val_diff if val_diff != 0 else 0)
-        df[] += max(p)
-
+        s["time_diff"] = [diff(i,st) for i in s.index.time] # type: ignore
+        s = s.loc[s["time_diff"].idxmin():] # type: ignore
 
         if len(stop.visits) == 0:
             s = sf.between_time(start.time(),end.time())
-        else:
-            s = sf.between_time(st.time(),end.time())
 
         df = pd.concat([df,s])
         df = typing.cast(pd.DataFrame,df)
@@ -124,7 +104,7 @@ def _query_df(
     CACHE["stops"] = scoped_stops
     CACHE["start"] = start
     CACHE["t"] = t
-    CACHE["pt"] = df["passengers"].sum() - already_done
+    CACHE["pt"] = df["passengers"].sum()
     CACHE["qt"] = (df[df["passengers"] == df["passengers"].max()].iloc[-1].name - start ).seconds // 60 # pylint: disable=C0301
 
     return (CACHE["pt"],CACHE["qt"])
