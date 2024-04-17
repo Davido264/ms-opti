@@ -3,7 +3,8 @@ import simanneal
 import datetime
 
 from msopti.algorithm.interfaces import ISolver, Scorefn, Solution, SolverParams, StopTime
-from msopti.params import Vehicle, Stop
+from msopti.params.interfaces.vehicle_provider import IVehicleProvider
+from msopti.params.interfaces.stop_provider import IStopProvider
 
 class _AnnealImpl(simanneal.Annealer):
     """Implementación de `simanneal.Annealer` para el problema planteado:
@@ -13,7 +14,7 @@ class _AnnealImpl(simanneal.Annealer):
 
     def move(self):
         """Obtener el siguiente estado."""
-        unumber = self._params.units[self._index].unit_number
+        unumber = self._params.units[self._index].unumber
         self.state = (unumber,(self._time.seconds // 60), self._istop)
 
         if self._index == len(self._params.units) - 1:
@@ -38,7 +39,7 @@ class _AnnealImpl(simanneal.Annealer):
     def energy(self):
         """Calcular la puntuación del estado actual."""
         units = self._params.units
-        unit: Vehicle = next(x for x in units if x.unit_number == self.state[0])
+        unit: IVehicleProvider = next(x for x in units if x.unumber == self.state[0])
         start_time = self._params.start_time
         stop = self._params.stops[self._istop].id
         t = datetime.timedelta(minutes=self.state[1])
@@ -121,7 +122,7 @@ class AnnealSolver(ISolver):
     def solve(self) -> Solution:
         result: tuple[str|int,int,int]
         result, _ = self._annealer.anneal()
-        unit = next(i for i in self._params.units if i.unit_number == result[0])
+        unit = next(i for i in self._params.units if i.unumber == result[0])
         stopi = result[2]
         stop_id = self._params.stops[stopi].id
         delay = result[1]
@@ -170,10 +171,10 @@ class AnnealSolver(ISolver):
 
     def solve_multi(self):
         result: tuple[int,int]
-        e: float
+        e: float | None
         result, e = self._annealer.anneal()
 
-        unit = next(i for i in self._params.units if i.unit_number == result[0])
+        unit = next(i for i in self._params.units if i.unumber == result[0])
         print(f"Unidad: {unit}")
         print(f"Minutos antes de salir: {result[1]}")
         print(f"Puntuación: {e}")
@@ -189,8 +190,8 @@ class AnnealSolver(ISolver):
         start_time: datetime.datetime,
         time_max: datetime.timedelta,
         interval: datetime.timedelta,
-        units: list[Vehicle],
-        stops: list[Stop],
+        units: list[IVehicleProvider],
+        stops: list[IStopProvider],
         optimize_stops: bool = False
         ) -> None:
         p = SolverParams(
@@ -214,6 +215,6 @@ class AnnealSolver(ISolver):
         # (a pesar de que se que es la raíz de todo mal) decido mantener
         # la representación del estado lo más ligera y rápida de copiar posible,
         # razón por la cual no utilizo SolverParams como el estado
-        initial_state = next((unit.unit_number,0,0) for unit in units)
+        initial_state = next((unit.unumber,0,0) for unit in units)
         self._annealer = _AnnealImpl(initial_state,p)
         self._params = p

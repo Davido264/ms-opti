@@ -3,15 +3,14 @@
 # TODO: Documentar todo esto en un documento aparte y comentar resumen de esto
 # con el link a títulos en dicho documento
 
-from functools import reduce
 import typing
 import math
 import datetime
 import pandas as pd
-import datetime
 
 from msopti.algorithm.interfaces import Scorefn
-from msopti.params import Scores, Stop
+from msopti.params.interfaces.stop_provider import IStopProvider
+from msopti.params.interfaces.scores_provider import IScoreProvider
 
 # TODO: buscar una mejor implementación para realizar catching
 # Lo que busco es guardar la última operación realizada, dado a
@@ -20,7 +19,7 @@ CACHE: dict | None = None
 
 def _query_df(
         forecast: pd.DataFrame,
-        scoped_stops: list[Stop],
+        scoped_stops: list[IStopProvider],
         start: datetime.datetime,
         t: datetime.timedelta
     ) -> tuple[int|float,int|float]:
@@ -59,7 +58,7 @@ def _query_df(
         end = st + t
 
         # Para cada tiempo establecido (inicio y fin) se va a obtener los
-        # valores más cercanos a los registrados (asumiendo que todos los 
+        # valores más cercanos a los registrados (asumiendo que todos los
         # registros contienen tiempos cuyos minutos son múltiplos de 5), y se
         # hace una consulta a los registros entre los tiempos obtenidos. Para
         # luego iterar por este registro resultante, y obtener el valor más
@@ -108,7 +107,7 @@ def _query_df(
                 prev_time = curr_time
 
             p.append(time_diff / val_diff if val_diff != 0 else 0)
-        df[] += max(p)
+        # df[] += max(p)
 
 
         if len(stop.visits) == 0:
@@ -131,7 +130,7 @@ def _query_df(
 
 
 
-def _reorder_stop(stops: list[Stop], s: str|int) -> list[Stop]:
+def _reorder_stop(stops: list[IStopProvider], s: str|int) -> list[IStopProvider]:
     """Reordena las paradas que se tomarán en cuenta para el algoritmo.
 
     Las paradas mantendrán su orden de planficiación, cambiará el punto de
@@ -162,8 +161,8 @@ def _reorder_stop(stops: list[Stop], s: str|int) -> list[Stop]:
 # TODO: Mejorar esta api
 def gererate_formula(
         forecast: pd.DataFrame,
-        stops: list[Stop],
-        scores: Scores,
+        stops: list[IStopProvider],
+        scores: IScoreProvider,
     ) -> Scorefn:
     """Genera una fórmula para ser utilizada con los algoritmos.
 
@@ -196,7 +195,7 @@ def gererate_formula(
         raise ValueError("No se tiene un `DatetimeIndex` como índice")
 
     a = scores.minute_price
-    b = scores.cap_cost
+    b = scores.capacity_cost
     c = scores.low_demand_cost
     d = scores.zero_demand_cost
 
