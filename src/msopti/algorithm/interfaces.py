@@ -7,7 +7,8 @@ import datetime
 import pandas as pd
 
 from typing import TypeAlias, Callable
-from msopti.params import Stop, Vehicle
+from msopti.params.interfaces.stop_provider import IStopProvider
+from msopti.params.interfaces.vehicle_provider import IVehicleProvider
 
 Scorefn: TypeAlias = Callable[[datetime.datetime,str|int,datetime.timedelta,int],float] # pylint: disable=C0301
 """Función de calificación.
@@ -60,8 +61,8 @@ class SolverParams():
     start_time: datetime.datetime
     time_max: datetime.timedelta
     interval: datetime.timedelta
-    units: list[Vehicle]
-    stops: list[Stop]
+    units: list[IVehicleProvider]
+    stops: list[IStopProvider]
     optimize_stops: bool = False
 
 
@@ -77,7 +78,7 @@ class StopTime:
         time: El tiempo en el que se esta en la parada.
     """
 
-    stop: Stop
+    stop: IStopProvider
     time: datetime.time
 
 
@@ -99,7 +100,7 @@ class Solution:
             solución del algoritmo.
     """
 
-    unit: Vehicle
+    unit: IVehicleProvider
     planification: list[StopTime]
     start_point: str|int
     delay: int
@@ -121,7 +122,7 @@ class Solution:
         """
         df =  pd.DataFrame(
             [[ i.time for i in self.planification ]],
-            index=pd.Index([self.unit.unit_number]),
+            index=pd.Index([self.unit.unumber]),
         )
 
         df.columns = [ i.stop.name for i in self.planification ]

@@ -9,5 +9,6 @@ dependencies = [
     "dataclass-wizard==0.22.3",
     "numpy==1.26.4",
     "pandas==2.2.0"
+    "pytimeparse"
 ]
 
