@@ -17,6 +17,8 @@ from msopti.params.interfaces.scores_provider import IScoreProvider
 # que se va a iterar por ella en múltiples ocaciones
 CACHE: dict | None = None
 
+pd.options.mode.copy_on_write = True
+
 def _query_df(
         forecast: pd.DataFrame,
         scoped_stops: list[IStopProvider],
@@ -45,6 +47,13 @@ def _query_df(
     # visitada en y, y se revisa desde y hasta x
     st = start
     df = pd.DataFrame()
+
+    # se busca el tiempo registrado más cercano y se lo utiliza
+    def diff(a,b):
+        time_a = datetime.timedelta(hours=a.hour,minutes=a.minute)
+        time_b = datetime.timedelta(hours=b.hour,minutes=b.minute)
+        return abs(time_a - time_b)
+
     for stop in scoped_stops:
         # Times (t = 5, t0 = 6:05):
         #   6:14 - 6:19 (parada 1: tp = 9 minutos)
@@ -85,13 +94,8 @@ def _query_df(
         s = sf.between_time(floor,ceil)
         typing.cast(pd.DataFrame,s)
 
-        # se busca el tiempo registrado más cercano y se lo utiliza
-        def diff(a,b):
-            time_a = datetime.timedelta(hours=a.hour,minutes=a.minute)
-            time_b = datetime.timedelta(hours=b.hour,minutes=b.minute)
-            return abs(time_a - time_b)
-
-        s["time_diff"] = [diff(i,st) for i in s.index.time] # type: ignore
+        # pylint: disable=W0640
+        s["time_diff"] = [ diff(i,st) for i in s.index.time ]
         s = s.loc[s["time_diff"].idxmin():] # type: ignore
 
         if len(stop.visits) == 0:
