@@ -4,6 +4,7 @@ import pandas as pd
 import datetime
 import asyncio
 import dataclass_wizard as dw
+import math
 
 from typing import cast
 
@@ -61,9 +62,9 @@ async def run():
             units,
             stops
         )
-        print("== DISPATCH ==")
         solution = an2.solve()
         solutions.append(solution)
+
         unit = next(u for u in units if u.unumber == solution.unit.unumber)
         unit.is_available = False
         units = [i for i in P.vehicles if available(i)]
@@ -71,20 +72,50 @@ async def run():
         initial_time += datetime.timedelta(minutes=solution.delay) \
             + P.schedule.interval
 
+
+        def diff(a,b):
+            time_a = datetime.timedelta(hours=a.hour,minutes=a.minute)
+            time_b = datetime.timedelta(hours=b.hour,minutes=b.minute)
+            return abs(time_a - time_b)
+
+
         # TODO: Mover esta implementación a solve_multi y considerar los
         # cambios y reordenamiento de las rutas
         for i,sto in enumerate(solution.planification):
+            # Values of the solution must be rounded as same as values used in
+            # the formula to ensure proper register checking
+            stop_forecast = forecast[forecast["stop_id"] == sto.stop.id]
+
+            floor = datetime.time(
+                hour=sto.time.hour,
+                minute=math.floor(sto.time.minute / 10) * 10,
+                second=0,
+            )
+
+            min_ceil = math.ceil(sto.time.minute / 10) * 10
+
+            ceil = datetime.time(
+                hour=sto.time.hour if min_ceil != 60 else sto.time.hour + 1,
+                minute= min_ceil if min_ceil != 60 else 0,
+                second=0,
+            )
+
+            s = stop_forecast.between_time(floor,ceil)
+            s = cast(pd.DataFrame,s)
+
+            date_index = cast(pd.DatetimeIndex,s.index)
+            s["time_diff"] = [ diff(i.time(),sto.time) for i in date_index ]
+
+            rounded_time = s.loc[s["time_diff"].idxmin():].index.time[0]
+
             last_time = datetime.datetime(
                 year=initial_time.year,
                 month=initial_time.month,
                 day=initial_time.day,
-                hour=sto.time.hour,
-                minute=sto.time.minute
+                hour=rounded_time.hour,
+                minute=rounded_time.minute
             )
             stops[i].visit(last_time)
-
-        for stop in stops:
-            print(stop)
 
     return solutions
 
@@ -100,7 +131,7 @@ async def main():
     print("== Unidades despachadas (en orden) ===")
 
     for i in solutions:
-        print(f"Stop: {dw.asdict(next(j for j in P.stops if j.get_id() == i.start_point), exclude=('time', 'event_delay', 'last_visit'))}") # type: ignore pylint: disable=C0301
+        print(f"Stop: {dw.asdict(next(j for j in P.stops if j.id == i.start_point), exclude=('time', 'event_delay', 'last_visit'))}") # type: ignore pylint: disable=C0301
         print(f"    {dw.asdict(i.unit, exclude=('available','start_point','route'))}") # type: ignore pylint: disable=C0301
         print(f"         {[j.time.isoformat() for j in i.planification]}")
         print(f"         Esperado {i.delay} minutos antes de despachar")

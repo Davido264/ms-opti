@@ -45,7 +45,7 @@ def _query_df(
     # paradas debido, a que posiblemente hasta ese tiempo ya hayan
     # sido visitadas. Para ese caso, se registra que una parada fue
     # visitada en y, y se revisa desde y hasta x
-    st = start
+    start_time = start + t
     df = pd.DataFrame()
 
     # se busca el tiempo registrado más cercano y se lo utiliza
@@ -61,47 +61,52 @@ def _query_df(
         #   6:34 - 6:39 (parada 3: tp = 4 minutos)
         #   ...  - ...
 
-        sf = forecast[forecast["stop_id"] == stop.id]
-        st += (stop.time + stop.event_delay)
-        end = st + t
+        stop_forecast = forecast[forecast["stop_id"] == stop.id]
+        start_time += (stop.time + stop.event_delay)
 
-        # Para cada tiempo establecido (inicio y fin) se va a obtener los
-        # valores más cercanos a los registrados (asumiendo que todos los
-        # registros contienen tiempos cuyos minutos son múltiplos de 5), y se
-        # hace una consulta a los registros entre los tiempos obtenidos. Para
-        # luego iterar por este registro resultante, y obtener el valor más
-        # cercano antes y después del tiempo dado. Una vez teniendo eso, se
-        # obtiene la diferencia entre los 2 valores obtenidos, tanto en la
-        # cantidad de pasajeros como en los minutos, y se los divide entre si,
-        # lo cual resulta en un factor aproximado de personas por minuto entre
-        # esos 2 intervalos de tiempo. Toda esta opración se omite si el tiempo
-        # dado tiene directamente un registro en la base de datos.
+        # Para cada tiempo establecido se va a obtener el valor registrado más
+        # cercano, esto se lo realizará redondeando a las decenas de minutos y
+        # comparando los valores intermedios en el rango establecido con el
+        # tiempo que se maneja, en caso de encontrarse un valor ya registrado,
+        # se pasará al siguiente mejor resultado. Si no se encuentra un
+        # resultado satisfactorio en un rango de descena, se pasará al siguiente
+        register = None
 
-        floor = datetime.time(
-            hour=st.hour,
-            minute=math.floor(st.minute / 10) * 10,
-            second=st.second
-        )
+        while register is None:
+            floor = datetime.time(
+                hour=start_time.hour,
+                minute=math.floor(start_time.minute / 10) * 10,
+                second=start_time.second
+            )
 
-        min_ceil = math.ceil(st.minute / 10) * 10
+            min_ceil = math.ceil(start_time.minute / 10) * 10
 
-        ceil = datetime.time(
-            hour=st.hour if min_ceil != 60 else st.hour + 1,
-            minute= min_ceil if min_ceil != 60 else 0,
-            second=st.second
-        )
+            ceil = datetime.time(
+                hour=start_time.hour if min_ceil != 60 else start_time.hour + 1,
+                minute= min_ceil if min_ceil != 60 else 0,
+                second=start_time.second
+            )
 
-        s = sf.between_time(floor,ceil)
-        typing.cast(pd.DataFrame,s)
+            s = stop_forecast.between_time(floor,ceil)
+            s = typing.cast(pd.DataFrame,s)
 
-        # pylint: disable=W0640
-        s["time_diff"] = [ diff(i,st) for i in s.index.time ]
-        s = s.loc[s["time_diff"].idxmin():] # type: ignore
+            date_index = typing.cast(pd.DatetimeIndex,s.index)
+            s["time_diff"] = [ diff(i.time(),start_time) for i in date_index ]
+            # s = s.loc[s["time_diff"].idxmin():] # type: ignore
+            s.sort_values(by="time_diff", ascending=True,inplace=True)
 
-        if len(stop.visits) == 0:
-            s = sf.between_time(start.time(),end.time())
+            # s será el registro más aproxima
+            for index,row in s.iterrows():
+                if (
+                    len(stop.visits) == 0 or
+                    len(stop.visits) != 0 and stop.visits[0] != index
+                ):
+                    register = pd.DataFrame(data=[row],index=[index])
+                    break
 
-        df = pd.concat([df,s])
+            start_time += datetime.timedelta(minutes=10)
+
+        df = pd.concat([df,register])
         df = typing.cast(pd.DataFrame,df)
 
 
@@ -209,7 +214,8 @@ def gererate_formula(
         result = (a * qt) + (b * abs( x - pt )) + dt
 
         # print(f"Params: a={a}, b={b}, c={c}, d={d}, t={t} p(t)={pt}, x={x}")
-        print(f"Params: t={t}, stop={sp} ,a={a}, b={b}, c={c}, d={d}, t={t} p(t)={pt}, q(t)={qt}, x={x}. Result: {result}") # pylint: disable=C0301
+        # print("runin")
+        # print(f"Params: t={t}, stop={sp} ,a={a}, b={b}, c={c}, d={d}, t={t} p(t)={pt}, q(t)={qt}, x={x}. Result: {result}") # pylint: disable=C0301
         return result
 
     return typing.cast(Scorefn,formula)
